@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+import sys
+import re
+import math
+from typing import Any
+from to_ascii import *
+from multiply_matrix import *
+from printing import *
+
+def usage(argv):
+    print("USAGE")
+    print("    ./103cipher message key flag\n")
+    print("DESCRIPTION")
+    print("    message    a message, made of ASCII characters")
+    print("    key    the encryption key, made of ASCII characters")
+    print("    flag    0 for the message to be encrypted, 1 to be decrypted")
+
+def error_handling(argv):
+
+    if (str(argv[1]) == '-h'):
+        usage(argv)
+    if (len(argv) != 4):
+        exit(84)
+
+def empty_matrix(argv):
+    i = get_dimensions(argv)
+    rows, cols = (i, i)
+    matrix = [[0 for i in range(cols)] for i in range(rows)]
+
+    return matrix
+
+def encryption(argv):
+    k = get_dimensions(argv)
+    rows, cols = (k, k)
+    result = check_float(argv, cols)
+    k_matrix = [[0 for k in range(cols)] for k in range(rows)]
+    s_matrix = [[0 for k in range(cols)] for k in range(math.trunc(len(argv[1]) / cols) + result)]
+    key = key_to_ascii(argv)
+    sentence = sentence_to_ascii(argv)
+    matrix = empty_matrix(argv)
+    i = 0
+    j = 0
+    a = 0
+
+    while (j < rows):
+        while (i < cols and a < len(key)):
+            k_matrix[j][i] = key[a]
+            a += 1
+            i += 1
+        i = 0
+        j += 1
+
+    a = 0
+    i = 0
+    j = 0
+
+    while (j < len(argv[1])):
+        while (i < cols and a <= len(sentence) - 1):
+            s_matrix[j][i] = sentence[a]
+            a += 1
+            i += 1
+        i = 0
+        j += 1
+    
+    r_matrix = matrix_prod(s_matrix, k_matrix, cols, sys.argv)
+    enc_prints(s_matrix, k_matrix, r_matrix)
+
+
+
+def decryption(argv, inverse_k):
+    k = get_dimensions(argv)
+    rows, cols = (k, k)
+    line = [int(s) for s in re.findall(r'[-\d]+', argv[1])]
+    result = new_check_float(line, cols)
+    e_matrix = [[0 for k in range(cols)] for k in range(math.trunc(len(line) / cols) + result)]
+    a = 0
+    j = 0
+    i = 0
+    result = 0
+    while (j < len(line)):
+        while (i < cols and a <= len(line) - 1):
+            e_matrix[j][i] = line[a]
+            a += 1
+            i += 1
+        i = 0
+        j += 1
+    matrix = matrix_prod(e_matrix, inverse_k, cols, sys.argv)
+
+    while i < len(matrix):
+        j = 0
+        while j < len(matrix[i]):
+            x = matrix[i][j]
+            matrix[i][j] = round(x)
+            j += 1
+        i += 1
+    dec_prints(matrix, inverse_k)
+
+def inverse_key(argv):
+    k = get_dimensions(argv)
+
+    if (k == 1):
+        rows, cols = (k, k)
+        k_matrix = [[0 for k in range(cols)] for k in range(rows)]
+        inverse_k = [0 for i in range(1)]
+        key = key_to_ascii(argv)
+        i, j, a = 0, 0, 0
+
+        if (key[0] == 0):
+            return 84
+        elif (key[0] > 0):
+            while (j < rows):
+                while (i < cols and a < len(key)):
+                    k_matrix[j][i] = key[a]
+                    a += 1
+                    i += 1
+                i = 0
+                j += 1
+            a = 0
+            i = 0
+            j += 1
+        a = 0
+        i = 0
+        j = 0
+        inverse_k[0] = 1/k_matrix[0][0]
+
+    if (k == 2):
+        rows, cols = (k, k)
+        k_matrix = [[0 for k in range(cols)] for k in range(rows)]
+        inverse_k = [[0 for k in range(cols)] for k in range(rows)]
+        key = key_to_ascii(argv)
+        i, j, a = 0, 0, 0
+
+        while (j < rows):
+            while (i < cols and a < len(key)):
+                k_matrix[j][i] = key[a]
+                a += 1
+                i += 1
+            i = 0
+            j += 1
+        a = 0
+        i = 0
+        j = 0
+        determinant = (k_matrix[0][0] * k_matrix[1][1]) - (k_matrix[0][1] * k_matrix[1][0])
+        inverse_k[0][0] = k_matrix[1][1]
+        inverse_k[0][1] = k_matrix[0][1] * -1
+        inverse_k[1][0] = k_matrix[1][0] * -1
+        inverse_k[1][1] = k_matrix[0][0]
+        inverse_k[0][0] /= determinant
+        inverse_k[0][1] /= determinant
+        inverse_k[1][0] /= determinant
+        inverse_k[1][1] /= determinant
+        round(inverse_k[0][0])
+        round(inverse_k[0][1])
+        round(inverse_k[1][0])
+        round(inverse_k[1][1])
+
+    if (k == 3):
+        rows, cols = (k, k)
+        k_matrix = [[0 for k in range(cols)] for k in range(rows)]
+        inverse_k = [[0 for k in range(cols)] for k in range(rows)]
+        key = key_to_ascii(argv)
+        i, j, a = 0, 0, 0
+        error = "Matrix irreversible"
+
+        while (j < rows):
+            while (i < cols and a < len(key)):
+                k_matrix[j][i] = key[a]
+                a += 1
+                i += 1
+            i = 0
+            j += 1
+        a = 0
+        i = 0
+        j = 0
+        determinant = (k_matrix[0][0] * k_matrix[1][1] * k_matrix[2][2]) + (k_matrix[0][1] * k_matrix[1][2] * k_matrix[2][0]) + (k_matrix[0][2] * k_matrix[1][0] * k_matrix[2][1]) - (k_matrix[2][0] * k_matrix[1][1] * k_matrix[0][2]) - (k_matrix[2][1] * k_matrix[1][2] * k_matrix[0][0]) - (k_matrix[2][2] * k_matrix[1][0] * k_matrix[0][1])
+        inverse_k[0][0] = (k_matrix[1][1] * k_matrix[2][2]) - (k_matrix[1][2] * k_matrix[2][1])
+        inverse_k[0][1] = ((k_matrix[0][1] * k_matrix[2][2]) - (k_matrix[0][2] * k_matrix[2][1])) * -1
+        inverse_k[0][2] = (k_matrix[0][1] * k_matrix[1][2]) - (k_matrix[0][2] * k_matrix[1][1])
+        inverse_k[1][0] = ((k_matrix[1][0] * k_matrix[2][2]) - (k_matrix[1][2] * k_matrix[2][0])) * -1
+        inverse_k[1][1] = (k_matrix[0][0] * k_matrix[2][2]) - (k_matrix[0][2] * k_matrix[2][0])
+        inverse_k[1][2] = ((k_matrix[0][0] * k_matrix[1][2]) - (k_matrix[0][2] * k_matrix[1][0])) * -1
+        inverse_k[2][0] = (k_matrix[1][0] * k_matrix[2][1]) - (k_matrix[1][1] * k_matrix[2][0])
+        inverse_k[2][1] = ((k_matrix[0][0] * k_matrix[2][1]) - (k_matrix[0][1] * k_matrix[2][0])) * -1
+        inverse_k[2][2] = (k_matrix[0][0] * k_matrix[1][1]) - (k_matrix[0][1] * k_matrix[1][0])
+        inverse_k[0][0] /= determinant
+        inverse_k[0][1] /= determinant
+        inverse_k[0][2] /= determinant
+        inverse_k[1][0] /= determinant
+        inverse_k[1][1] /= determinant  
+        inverse_k[1][2] /= determinant
+        inverse_k[2][0] /= determinant
+        inverse_k[2][1] /= determinant
+        inverse_k[2][2] /= determinant
+        round(inverse_k[0][2])
+        round(inverse_k[1][0]) 
+        round(inverse_k[1][1])
+        round(inverse_k[1][2])
+        round(inverse_k[2][0])
+        round(inverse_k[2][1])
+        round(inverse_k[2][2])
+
+    decryption(argv, inverse_k)
+
+def main(argv):
+    error_handling(argv)
+    if argv[3] == '0':
+        encryption(argv)
+    else:
+        inverse_key(argv)
+
+main(sys.argv)
